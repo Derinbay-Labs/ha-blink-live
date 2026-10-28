@@ -48,6 +48,7 @@ def test_thumbnail_uses_the_cached_snapshot(camera, blink_api) -> None:
     _blink_camera(blink_api).init_livestream.assert_not_called()
 
 
+@pytest.mark.usefixtures("socket_enabled")
 async def test_stream_source_is_local(hass: HomeAssistant, camera) -> None:
     """The stream source is a loopback relay, known before any viewer connects."""
     with patch.object(BlinkLiveCamera, "async_refresh_providers"):

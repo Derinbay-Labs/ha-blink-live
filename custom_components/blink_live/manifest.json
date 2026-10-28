@@ -1,9 +1,6 @@
 {
   "domain": "blink_live",
   "name": "Blink Live View",
-  "categories": [
-    "security_safety.cameras"
-  ],
   "codeowners": [
     "@derinbay"
   ],
