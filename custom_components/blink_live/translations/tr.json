@@ -1,0 +1,27 @@
+{
+  "config": {
+    "abort": {
+      "blink_not_loaded": "Önce Blink entegrasyonunu kurun.",
+      "single_instance_allowed": "Blink canlı izleme zaten kurulu; kameraları seçeneklerinden değiştirin."
+    },
+    "step": {
+      "user": {
+        "title": "Blink canlı izleme",
+        "data": { "cameras": "Kameralar" },
+        "data_description": { "cameras": "Her kamera için bir canlı izleme kamerası eklenir. Canlı görüntü yalnızca biri açtığında başlar." }
+      }
+    }
+  },
+  "options": {
+    "abort": { "blink_not_loaded": "Blink entegrasyonu yüklü değil." },
+    "step": {
+      "init": {
+        "title": "Blink canlı izleme",
+        "data": { "cameras": "Kameralar" }
+      }
+    }
+  },
+  "entity": {
+    "camera": { "live": { "name": "Canlı" } }
+  }
+}

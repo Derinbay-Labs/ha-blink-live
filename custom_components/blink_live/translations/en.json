@@ -1,0 +1,27 @@
+{
+  "config": {
+    "abort": {
+      "blink_not_loaded": "Set up the Blink integration first.",
+      "single_instance_allowed": "Blink Live View is already set up; change the cameras from its options."
+    },
+    "step": {
+      "user": {
+        "title": "Blink Live View",
+        "data": { "cameras": "Cameras" },
+        "data_description": { "cameras": "Each camera gets a live-view camera entity. A live view starts only when someone opens it." }
+      }
+    }
+  },
+  "options": {
+    "abort": { "blink_not_loaded": "The Blink integration is not loaded." },
+    "step": {
+      "init": {
+        "title": "Blink Live View",
+        "data": { "cameras": "Cameras" }
+      }
+    }
+  },
+  "entity": {
+    "camera": { "live": { "name": "Live" } }
+  }
+}

@@ -1,0 +1,2 @@
+blinkpy==0.25.9
+pytest-homeassistant-custom-component==0.13.375
