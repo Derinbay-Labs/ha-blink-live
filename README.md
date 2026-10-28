@@ -1,7 +1,7 @@
 # Blink Live View for Home Assistant
 
-[![Validate](https://github.com/derinbay/ha-blink-live/actions/workflows/validate.yml/badge.svg)](https://github.com/derinbay/ha-blink-live/actions/workflows/validate.yml)
-[![Release](https://img.shields.io/github/v/release/derinbay/ha-blink-live)](https://github.com/derinbay/ha-blink-live/releases)
+[![Validate](https://github.com/Derinbay-Labs/ha-blink-live/actions/workflows/validate.yml/badge.svg)](https://github.com/Derinbay-Labs/ha-blink-live/actions/workflows/validate.yml)
+[![Release](https://img.shields.io/github/v/release/Derinbay-Labs/ha-blink-live)](https://github.com/Derinbay-Labs/ha-blink-live/releases)
 [![HACS](https://img.shields.io/badge/HACS-custom-41BDF5)](https://hacs.xyz/docs/faq/custom_repositories/)
 
 The [Blink integration](https://www.home-assistant.io/integrations/blink/) that ships
@@ -24,19 +24,19 @@ created.
 
 ### HACS
 
-[![Open your Home Assistant instance and add this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=derinbay&repository=ha-blink-live&category=integration)
+[![Open your Home Assistant instance and add this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Derinbay-Labs&repository=ha-blink-live&category=integration)
 
 The button adds the repository to HACS (to the Marketplace on Home Assistant 2026.11
 and later). To do it by hand:
 
 1. Open HACS, then the menu in the top right corner, then **Custom repositories**.
-2. Add `https://github.com/derinbay/ha-blink-live` with the type **Integration**.
+2. Add `https://github.com/Derinbay-Labs/ha-blink-live` with the type **Integration**.
 3. Search for **Blink Live View**, download it, and restart Home Assistant.
 
 ### Manual
 
 Copy `custom_components/blink_live` from the
-[latest release](https://github.com/derinbay/ha-blink-live/releases/latest) into the
+[latest release](https://github.com/Derinbay-Labs/ha-blink-live/releases/latest) into the
 `custom_components` folder of your Home Assistant configuration, then restart.
 
 ## Configuration

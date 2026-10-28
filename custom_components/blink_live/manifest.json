@@ -9,10 +9,10 @@
     "blink",
     "camera"
   ],
-  "documentation": "https://github.com/derinbay/ha-blink-live",
+  "documentation": "https://github.com/Derinbay-Labs/ha-blink-live",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/derinbay/ha-blink-live/issues",
+  "issue_tracker": "https://github.com/Derinbay-Labs/ha-blink-live/issues",
   "requirements": [],
   "single_config_entry": true,
   "version": "0.1.0"

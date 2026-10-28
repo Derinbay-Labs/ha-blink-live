@@ -15,5 +15,5 @@ All notable changes to this project are documented here. The format follows
 - An `online` attribute that reports whether Blink sees the camera as online.
 - Camera selection in the setup dialog and in the integration's options.
 
-[Unreleased]: https://github.com/derinbay/ha-blink-live/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/derinbay/ha-blink-live/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Derinbay-Labs/ha-blink-live/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Derinbay-Labs/ha-blink-live/releases/tag/v0.1.0
