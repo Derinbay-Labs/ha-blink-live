@@ -120,9 +120,16 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
             return {"online": None}
         return {"online": camera.online}
 
+    def _reported_offline(self) -> bool:
+        """Return whether Blink reports the camera offline; unknown is not offline."""
+        return self.extra_state_attributes["online"] is False
+
     async def stream_source(self) -> str | None:
-        """Return the local relay; this never starts a live view."""
-        return self._url
+        """Return the local relay, or None while Blink reports the camera offline.
+
+        This never starts a live view.
+        """
+        return None if self._reported_offline() else self._url
 
     def camera_image(
         self, width: int | None = None, height: int | None = None
@@ -160,6 +167,12 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
         """Relay the live view to the viewer; one viewer at a time."""
         if self._viewer is not None:
             _LOGGER.debug("Refused a second viewer for %s", self.entity_id)
+            writer.close()
+            return
+        if self._reported_offline():
+            _LOGGER.debug(
+                "No live view for %s: Blink reports it offline", self.entity_id
+            )
             writer.close()
             return
         self._viewer = writer
