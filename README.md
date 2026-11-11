@@ -83,6 +83,7 @@ entity shows. Rendering a dashboard never wakes a camera.
 | Attribute | Values | Meaning |
 |-----------|--------|---------|
 | `online`  | `true`, `false`, `null` | Whether Blink reports the camera as online. `null` means Blink sent no status. |
+| `live`    | `true`, `false` | `true` from the first video data sent to the viewer until the viewer leaves, `false` otherwise. |
 
 Blink refreshes this status about every five minutes. A camera that is offline cannot
 start a live view, so the attribute is useful for marking such cameras on a
