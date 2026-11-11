@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncGenerator, Generator
+import logging
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -61,6 +62,37 @@ def test_online_attribute(camera, coordinator, status, online, expected) -> None
     _blink_camera(coordinator).status = status
     _blink_camera(coordinator).online = online
     assert camera.extra_state_attributes == {"online": expected}
+
+
+@pytest.mark.parametrize(
+    ("status", "online", "served"),
+    [("online", True, True), ("offline", False, False), (None, False, True)],
+)
+async def test_stream_source_only_while_not_offline(
+    camera, coordinator, status, online, served
+) -> None:
+    """No stream for a camera Blink reports offline; unknown still gets the URL."""
+    _blink_camera(coordinator).status = status
+    _blink_camera(coordinator).online = online
+    assert await camera.stream_source() == (camera._url if served else None)
+
+
+@pytest.mark.usefixtures("socket_enabled")
+async def test_offline_viewer_is_closed_without_a_live_view(
+    listening, coordinator, caplog
+) -> None:
+    """An existing stream reconnecting to an offline camera is dropped quietly."""
+    _blink_camera(coordinator).status = "offline"
+    _blink_camera(coordinator).online = False
+    _blink_camera(coordinator).init_livestream = AsyncMock(
+        side_effect=KeyError("server")
+    )
+    reader, writer = await _connect(listening)
+    async with asyncio.timeout(2):
+        assert await reader.read() == b""
+    writer.close()
+    _blink_camera(coordinator).init_livestream.assert_not_called()
+    assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
 
 
 def test_unavailable_when_blink_drops_the_camera(camera, coordinator) -> None:

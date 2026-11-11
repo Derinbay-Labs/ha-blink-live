@@ -16,6 +16,11 @@ All notable changes to this project are documented here. The format follows
   the core Blink device.
 - Entries from 0.1.0 ask for the Blink login once; the camera selection is kept.
 
+### Fixed
+
+- An offline camera no longer starts a Blink live view or logs an error each time
+  something connects to it.
+
 ### Added
 
 - Reauthentication when Blink rejects the stored token. A Blink outage or lost
