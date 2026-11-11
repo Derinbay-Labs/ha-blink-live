@@ -1,6 +1,6 @@
 """Blink live-view cameras.
 
-Each entity listens on its own local TCP port and returns it as its stream source,
+Each entity listens on its own loopback TCP port and returns it as its stream source,
 so asking for the source (HA does on boot and on every provider refresh) never
 touches Blink. Only when a viewer (go2rtc) connects does the entity open a Blink
 live view and relay its MPEG-TS stream; when the viewer leaves, the relay closes
@@ -14,12 +14,13 @@ from blinkpy.camera import BlinkCamera
 from blinkpy.livestream import BlinkLiveStream
 
 from homeassistant.components.camera import Camera, CameraEntityFeature
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import CONF_CAMERAS, blink_api, blink_entry
+from .const import CONF_CAMERAS, DOMAIN
+from .coordinator import BlinkLiveConfigEntry, BlinkLiveCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,56 +29,58 @@ _CHUNK = 64 * 1024
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: BlinkLiveConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Add a live-view camera for each selected Blink camera."""
-    if (blink := blink_entry(hass)) is None:
-        return
-    devices = dr.async_get(hass)
+    coordinator = entry.runtime_data
+    selected = set(entry.options.get(CONF_CAMERAS, []))
     async_add_entities(
-        BlinkLiveCamera(serial, device)
-        for serial in entry.options[CONF_CAMERAS]
-        # The device the core Blink integration created for this camera.
-        if (
-            device := devices.async_get_device_by_identifier(
-                ("blink", serial), blink.entry_id
-            )
-        )
+        BlinkLiveCamera(coordinator, camera.serial, name)
+        for name, camera in coordinator.api.cameras.items()
+        if camera.serial in selected
     )
 
 
-class BlinkLiveCamera(Camera):
+class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
     """A Blink camera whose stream is the app's live view."""
 
     _attr_has_entity_name = True
-    _attr_translation_key = "live"
+    # The live view is the device's main feature: the entity takes the device name.
+    _attr_name = None
     _attr_supported_features = CameraEntityFeature.STREAM
 
-    def __init__(self, serial: str, device: dr.DeviceEntry) -> None:
+    def __init__(
+        self, coordinator: BlinkLiveCoordinator, serial: str, camera_name: str
+    ) -> None:
         """Initialize the camera."""
-        super().__init__()
+        super().__init__(coordinator)
+        Camera.__init__(self)
         self._serial = serial
         self._attr_unique_id = f"{serial}-live"
-        # Attach to the Blink device itself; a device info would create our own copy.
-        self.device_entry = device
+        # Our own device, separate from the one core Blink creates for the camera.
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, serial)},
+            name=f"{camera_name} Live",
+            manufacturer="Blink",
+        )
         self._server: asyncio.Server | None = None
         self._url: str | None = None
         self._live: BlinkLiveStream | None = None
         self._feed: asyncio.Task | None = None
+        self._viewer: asyncio.StreamWriter | None = None
         self._lock = asyncio.Lock()
 
     def _blink_camera(self) -> BlinkCamera | None:
-        # Looked up on each use: a reload of the Blink entry replaces its client.
-        if api := blink_api(self.hass):
-            for camera in api.cameras.values():
-                if camera.serial == self._serial:
-                    return camera
+        for camera in self.coordinator.api.cameras.values():
+            if camera.serial == self._serial:
+                return camera
         return None
 
     async def async_added_to_hass(self) -> None:
         """Start listening for viewers."""
         await super().async_added_to_hass()
+        # Loopback only: the relay must never be reachable from the network.
         self._server = await asyncio.start_server(self._serve, "127.0.0.1", 0)
         port = self._server.sockets[0].getsockname()[1]
         self._url = f"tcp://127.0.0.1:{port}"
@@ -85,9 +88,11 @@ class BlinkLiveCamera(Camera):
         await self.async_refresh_providers()
 
     async def async_will_remove_from_hass(self) -> None:
-        """Stop listening and end any live view."""
+        """Stop listening, drop the viewer and end any live view."""
         if self._server:
             self._server.close()
+        if self._viewer:
+            self._viewer.close()
         if self._live:
             self._live.stop()
         if self._feed:
@@ -96,7 +101,7 @@ class BlinkLiveCamera(Camera):
 
     @property
     def available(self) -> bool:
-        """Return True while the Blink integration knows the camera.
+        """Return True while the Blink account has the camera.
 
         Every Blink session ends after about 45 s, and the stream worker marks the
         stream down while it waits to reconnect. Camera.available would follow it,
@@ -134,7 +139,7 @@ class BlinkLiveCamera(Camera):
             live = self._live
             if not (live and live.is_serving):
                 if (camera := self._blink_camera()) is None:
-                    raise RuntimeError("camera not found in the Blink integration")
+                    raise RuntimeError("camera not found on the Blink account")
                 live = await camera.init_livestream()
                 await live.start()
                 self._live = live
@@ -146,13 +151,18 @@ class BlinkLiveCamera(Camera):
                 self._feed = self.hass.async_create_background_task(
                     live.feed(), f"blink_live feed {self._serial}"
                 )
-                _LOGGER.debug("Live view started for %s", self.entity_id)
+                _LOGGER.info("Live view started for %s", self.entity_id)
             return upstream
 
     async def _serve(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
-        """Relay the live view to one connected viewer."""
+        """Relay the live view to the viewer; one viewer at a time."""
+        if self._viewer is not None:
+            _LOGGER.debug("Refused a second viewer for %s", self.entity_id)
+            writer.close()
+            return
+        self._viewer = writer
         upstream_writer = None
         viewer_gone = None
         try:
@@ -179,4 +189,5 @@ class BlinkLiveCamera(Camera):
             if upstream_writer:
                 upstream_writer.close()
             writer.close()
-            _LOGGER.debug("Viewer left %s", self.entity_id)
+            self._viewer = None
+            _LOGGER.info("Viewer left %s", self.entity_id)
