@@ -69,7 +69,6 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
         self._live: BlinkLiveStream | None = None
         self._feed: asyncio.Task | None = None
         self._viewer: asyncio.StreamWriter | None = None
-        self._playing = False
         self._lock = asyncio.Lock()
 
     def _blink_camera(self) -> BlinkCamera | None:
@@ -112,14 +111,14 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
 
     @property
     def extra_state_attributes(self) -> dict[str, bool | None]:
-        """Return whether Blink reports the camera online, and if video flows.
+        """Return whether Blink reports the camera online.
 
-        online is None when Blink sends no status, which blinkpy would read as
-        offline. live is True from the first relayed chunk until the viewer leaves.
+        None when Blink sends no status, which blinkpy would read as offline.
         """
         camera = self._blink_camera()
-        online = None if camera is None or camera.status is None else camera.online
-        return {"online": online, "live": self._playing}
+        if camera is None or camera.status is None:
+            return {"online": None}
+        return {"online": camera.online}
 
     async def stream_source(self) -> str | None:
         """Return the local relay; this never starts a live view."""
@@ -178,9 +177,6 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
                     chunk.cancel()
                     break
                 writer.write(data)
-                if not self._playing:
-                    self._playing = True
-                    self.async_write_ha_state()
                 await writer.drain()
         except (ConnectionError, OSError) as err:
             _LOGGER.debug("Live view relay for %s closed: %s", self.entity_id, err)
@@ -194,7 +190,4 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
                 upstream_writer.close()
             writer.close()
             self._viewer = None
-            if self._playing:
-                self._playing = False
-                self.async_write_ha_state()
             _LOGGER.info("Viewer left %s", self.entity_id)

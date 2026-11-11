@@ -21,7 +21,6 @@ All notable changes to this project are documented here. The format follows
 - Reauthentication when Blink rejects the stored token. A Blink outage or lost
   connection retries instead of asking for a login.
 - One entry per Blink account; adding the same account again is refused.
-- A `live` attribute that is `true` while video reaches the viewer, so a dashboard can hide a "camera waking up" caption once the picture plays.
 
 ### Security
 

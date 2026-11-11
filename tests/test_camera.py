@@ -60,7 +60,7 @@ def test_online_attribute(camera, coordinator, status, online, expected) -> None
     """Blink's status is passed through; a missing status is unknown, not offline."""
     _blink_camera(coordinator).status = status
     _blink_camera(coordinator).online = online
-    assert camera.extra_state_attributes == {"online": expected, "live": False}
+    assert camera.extra_state_attributes == {"online": expected}
 
 
 def test_unavailable_when_blink_drops_the_camera(camera, coordinator) -> None:
@@ -68,7 +68,7 @@ def test_unavailable_when_blink_drops_the_camera(camera, coordinator) -> None:
     assert camera.available
     del coordinator.api.cameras["Garden"]
     assert not camera.available
-    assert camera.extra_state_attributes == {"online": None, "live": False}
+    assert camera.extra_state_attributes == {"online": None}
 
 
 def test_thumbnail_uses_the_cached_snapshot(camera, coordinator) -> None:
@@ -138,19 +138,13 @@ async def test_relay_forwards_and_closes_when_viewer_leaves(
     live.feed = AsyncMock()
     _blink_camera(coordinator).init_livestream = AsyncMock(return_value=live)
     try:
-        assert listening.extra_state_attributes["live"] is False
-        with patch.object(listening, "async_write_ha_state") as write_state:
-            reader, writer = await _connect(listening)
-            async with asyncio.timeout(2):
-                assert await reader.readexactly(7) == b"mpeg-ts"
-            assert listening.extra_state_attributes["live"] is True
-            write_state.assert_called_once()
-            writer.close()
-            async with asyncio.timeout(2):
-                await upstream_closed.wait()
-            await _until(lambda: listening._viewer is None)
-            assert listening.extra_state_attributes["live"] is False
-            assert write_state.call_count == 2
+        reader, writer = await _connect(listening)
+        async with asyncio.timeout(2):
+            assert await reader.readexactly(7) == b"mpeg-ts"
+        writer.close()
+        async with asyncio.timeout(2):
+            await upstream_closed.wait()
+        await _until(lambda: listening._viewer is None)
     finally:
         upstream.close()
         await upstream.wait_closed()
