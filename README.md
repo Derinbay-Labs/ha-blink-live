@@ -9,14 +9,15 @@ with Home Assistant shows the last snapshot a camera took. The Blink app can als
 a live view. This integration brings that live view into Home Assistant: for each
 camera you pick, it adds a **Live** camera entity that streams video when you open it.
 
-It does not replace the core integration. It runs on top of it, reuses its login and
-its Blink client, and adds its entities to the devices the core integration already
-created.
+It does not replace the core integration and does not need it. It has its own Blink
+login and its own Blink client, and puts each Live entity on a device of its own. You
+can run it next to the core integration or without it.
 
 ## Requirements
 
 - Home Assistant 2026.10 or newer. Older releases are untested.
-- The core Blink integration, set up and working.
+- A Blink account: its email and password, and access to the email or phone that
+  receives Blink's PIN.
 - No Blink subscription is needed. Live view works on the free plan, as it does in
   the app.
 
@@ -43,17 +44,36 @@ Copy `custom_components/blink_live` from the
 
 1. Go to **Settings > Devices & services > Add integration** and choose
    **Blink Live View**.
-2. Select the cameras that should get a live view, then submit.
+2. Enter the email and password of your Blink account.
+3. If Blink sends a PIN by email or text, enter it.
+4. Select the cameras that should get a live view, then submit.
 
-To change the selection later, open the integration and choose **Configure**. Only
-one entry can exist; it covers every camera on the Blink account.
+To change the selection later, open the integration and choose **Configure**. One
+entry covers every camera on a Blink account; the same account cannot be added twice.
+
+### The separate login
+
+This integration signs in to Blink on its own, even if the core Blink integration is
+already set up with the same account. Blink sees it as one more signed-in device, the
+way it sees a second phone with the Blink app, and may send a PIN for it.
+
+The password is used for that sign-in only. Home Assistant stores the tokens Blink
+returns, never the password or the PIN. When Blink rejects the stored token, Home
+Assistant shows a **Reauthenticate** notice: enter the password (and the PIN, if Blink
+asks) again. A Blink outage or a lost connection does not ask for a login; the
+integration retries on its own.
+
+Upgrading from 0.1.0, which borrowed the core integration's login, asks for this login
+once. The camera selection is kept.
 
 ## Usage
 
 Each selected camera gets an entity named after it, such as
-`camera.front_door_live`, on the same device as the core Blink entities. Open it from
-the more-info dialog or a dashboard card; the live view starts when the stream
-starts and ends when you close it.
+`camera.front_door_live`, on a device of its own named after the camera, such as
+**Front door Live**. If the core Blink integration is set up too, each camera then
+appears as two devices: the core one and the Live one. Open the entity from the
+more-info dialog or a dashboard card; the live view starts when the stream starts and
+ends when you close it.
 
 The entity's thumbnail is Blink's last snapshot, the same image the core camera
 entity shows. Rendering a dashboard never wakes a camera.
@@ -78,8 +98,9 @@ blinkpy, the library the core integration uses, can open the same live view the 
 does: a TLS connection to Blink that carries an MPEG-TS video stream. Each Live entity
 listens on a local port (`127.0.0.1`) and gives that address to Home Assistant as its
 stream source. Nothing happens until a viewer connects to that port. Then the entity
-asks Blink for a live view and relays the stream to the viewer; when the last viewer
-disconnects, the live view ends.
+asks Blink for a live view and relays the stream to the viewer; when the viewer
+disconnects, the live view ends. The relay serves one viewer at a time, which is how
+Home Assistant's stream component reads it.
 
 Because the stream source is only an address, Home Assistant can look it up at
 startup and whenever it likes without starting a live view or using any battery.
@@ -93,17 +114,21 @@ startup and whenever it likes without starting a live view or using any battery.
 - **The stream is only reachable on the Home Assistant host.** The relay listens on
   `127.0.0.1`. The go2rtc server built into Home Assistant can read it; a go2rtc or
   NVR running on another machine cannot.
-- **Unofficial API.** Blink does not publish an API. This integration depends on
-  blinkpy and on the version of it the core integration ships, so a Blink-side change
-  can break live view until blinkpy and Home Assistant catch up.
-- **Thumbnails come from the core integration.** They update when the core Blink
-  integration fetches a new snapshot, not while a live view is running.
+- **Unofficial API.** Blink does not publish an API. This integration uses blinkpy,
+  pinned to the version the core integration ships, so a Blink-side change can break
+  live view until blinkpy and Home Assistant catch up.
+- **Thumbnails are Blink's last snapshot.** They update about every five minutes when
+  the integration refreshes, not while a live view is running.
 
 ## Troubleshooting
 
-**The integration cannot be added and says to set up Blink first.** The core Blink
-integration is not loaded. Fix it first; this integration waits for it at startup and
-loads automatically once it is ready.
+**The login fails with "The email or password is wrong".** Check the account in the Blink
+app. The integration does not use the core Blink integration's login, so it needs the
+account password even when core Blink is already set up.
+
+**Home Assistant asks to reauthenticate.** Blink rejected the stored token, for
+example after a password change or after signing out all devices in the Blink app.
+Enter the password again.
 
 **A camera opens but shows no video.** Check the `online` attribute. If it is
 `false`, the camera is offline in the Blink app too. If it is `true`, enable debug

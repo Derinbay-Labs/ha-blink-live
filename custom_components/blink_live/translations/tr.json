@@ -1,27 +1,47 @@
 {
   "config": {
     "abort": {
-      "blink_not_loaded": "Önce Blink entegrasyonunu kurun.",
-      "single_instance_allowed": "Blink canlı izleme zaten kurulu; kameraları seçeneklerinden değiştirin."
+      "already_configured": "Bu Blink hesabı zaten kurulu.",
+      "no_cameras": "Blink hesabında kamera yok.",
+      "reauth_successful": "Blink'e yeniden giriş yapıldı.",
+      "wrong_account": "Bu kaydın kurulduğu Blink hesabıyla giriş yapın."
+    },
+    "error": {
+      "cannot_connect": "Blink'e ulaşılamadı. Daha sonra yeniden deneyin.",
+      "invalid_auth": "E-posta veya parola yanlış.",
+      "invalid_pin": "PIN yanlış veya süresi dolmuş.",
+      "unknown": "Beklenmeyen hata. Yeniden deneyin."
     },
     "step": {
       "user": {
+        "title": "Blink'e giriş yapın",
+        "description": "Blink canlı izleme Blink'e kendisi, Blink entegrasyonunun yanında ayrı bir cihaz olarak giriş yapar. Yalnızca anahtarlar saklanır; parola saklanmaz.",
+        "data": { "username": "E-posta", "password": "Parola" }
+      },
+      "2fa": {
+        "title": "Blink PIN'i",
+        "description": "Blink'in e-posta veya kısa mesajla gönderdiği PIN'i girin.",
+        "data": { "pin": "PIN" }
+      },
+      "cameras": {
         "title": "Blink canlı izleme",
         "data": { "cameras": "Kameralar" },
-        "data_description": { "cameras": "Her kamera için bir canlı izleme kamerası eklenir. Canlı görüntü yalnızca biri açtığında başlar." }
+        "data_description": { "cameras": "Her kamera için bir canlı izleme cihazı ve kamerası eklenir. Canlı görüntü yalnızca biri açtığında başlar." }
+      },
+      "reauth_confirm": {
+        "title": "Blink'e yeniden giriş yapın",
+        "description": "Blink saklanan girişi artık kabul etmiyor. Aynı hesapla yeniden giriş yapın.",
+        "data": { "username": "E-posta", "password": "Parola" }
       }
     }
   },
   "options": {
-    "abort": { "blink_not_loaded": "Blink entegrasyonu yüklü değil." },
+    "abort": { "not_loaded": "Blink canlı izleme yüklü değil." },
     "step": {
       "init": {
         "title": "Blink canlı izleme",
         "data": { "cameras": "Kameralar" }
       }
     }
-  },
-  "entity": {
-    "camera": { "live": { "name": "Canlı" } }
   }
 }

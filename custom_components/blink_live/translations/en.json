@@ -1,27 +1,47 @@
 {
   "config": {
     "abort": {
-      "blink_not_loaded": "Set up the Blink integration first.",
-      "single_instance_allowed": "Blink Live View is already set up; change the cameras from its options."
+      "already_configured": "This Blink account is already set up.",
+      "no_cameras": "The Blink account has no cameras.",
+      "reauth_successful": "Logged in to Blink again.",
+      "wrong_account": "Log in with the Blink account this entry was set up with."
+    },
+    "error": {
+      "cannot_connect": "Could not reach Blink. Try again later.",
+      "invalid_auth": "The email or password is wrong.",
+      "invalid_pin": "The PIN is wrong or has expired.",
+      "unknown": "Unexpected error. Try again."
     },
     "step": {
       "user": {
+        "title": "Log in to Blink",
+        "description": "Blink Live View logs in to Blink on its own, as a separate device next to the Blink integration. Only tokens are kept; the password is not stored.",
+        "data": { "username": "Email", "password": "Password" }
+      },
+      "2fa": {
+        "title": "Blink PIN",
+        "description": "Enter the PIN Blink sent you by email or text message.",
+        "data": { "pin": "PIN" }
+      },
+      "cameras": {
         "title": "Blink Live View",
         "data": { "cameras": "Cameras" },
-        "data_description": { "cameras": "Each camera gets a live-view camera entity. A live view starts only when someone opens it." }
+        "data_description": { "cameras": "Each camera gets a live-view device and camera entity. A live view starts only when someone opens it." }
+      },
+      "reauth_confirm": {
+        "title": "Log in to Blink again",
+        "description": "Blink no longer accepts the stored login. Log in again with the same account.",
+        "data": { "username": "Email", "password": "Password" }
       }
     }
   },
   "options": {
-    "abort": { "blink_not_loaded": "The Blink integration is not loaded." },
+    "abort": { "not_loaded": "Blink Live View is not loaded." },
     "step": {
       "init": {
         "title": "Blink Live View",
         "data": { "cameras": "Cameras" }
       }
     }
-  },
-  "entity": {
-    "camera": { "live": { "name": "Live" } }
   }
 }
