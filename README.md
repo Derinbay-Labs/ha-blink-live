@@ -115,8 +115,8 @@ startup and whenever it likes without starting a live view or using any battery.
   `127.0.0.1`. The go2rtc server built into Home Assistant can read it; a go2rtc or
   NVR running on another machine cannot.
 - **Unofficial API.** Blink does not publish an API. This integration uses blinkpy,
-  pinned to the version the core integration ships, so a Blink-side change can break
-  live view until blinkpy and Home Assistant catch up.
+  the same version the core integration ships, so a Blink-side change can break live
+  view until blinkpy and Home Assistant catch up.
 - **Thumbnails are Blink's last snapshot.** They update about every five minutes when
   the integration refreshes, not while a live view is running.
 

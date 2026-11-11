@@ -37,14 +37,17 @@ pass core review); option 3 means leaving HACS default.
 
 ### blinkpy pin rule
 
-`requirements` pins blinkpy with `==` to the exact version core's `blink` integration requires in
-the current HA stable release. Two different pins in one environment conflict: whichever
-integration installs last wins, which can break the other.
+`requirements` sets blinkpy's minimum with `>=` to the exact version core's `blink` integration
+requires in the current HA stable release. hassfest rejects an `==` pin on a package Home
+Assistant itself depends on. With `>=`, the blinkpy already installed for core (Home Assistant's
+images ship it, and core `blink` installs its exact pin) satisfies the requirement and is kept, so
+both integrations run the same blinkpy; a newer blinkpy is installed only where none is present.
 
-- Today: **`blinkpy==0.25.9`**, required by core in 2026.11.1 (current stable, manifest line 26)
-  and equally in 2026.10.0, 2026.10.4, 2026.11.0 and `dev`; it is blinkpy's latest release.
-- The pin moves only with core's, in the release that raises `hacs.json` `homeassistant` to the
-  first HA version with the new pin. Renovate PRs for blinkpy are not merged on their own.
+- Today: **`blinkpy>=0.25.9`**; core requires `blinkpy==0.25.9` in 2026.11.1 (current stable,
+  manifest line 26) and equally in 2026.10.0, 2026.10.4, 2026.11.0 and `dev`; it is blinkpy's
+  latest release.
+- The minimum moves only with core's pin, in the release that raises `hacs.json` `homeassistant`
+  to the first HA version with the new pin. Renovate PRs for blinkpy are not merged on their own.
 
 ### What the config entry stores
 
@@ -82,7 +85,7 @@ until verified**. As a precaution `blink_live` uses its own aiohttp session
 - Good: no dependency on core Blink internals or devices; no password at rest in our entry.
 - Bad: the user logs in twice and confirms a second 2FA PIN; each camera shows as two devices.
 - Bad: a lost refresh token always means reauth with PIN (core can retry with its stored
-  password); the blinkpy pin must follow core release by release.
+  password); the blinkpy minimum must follow core's pin release by release.
 - If the real-account check shows the sessions invalidate each other, a new ADR supersedes this.
 
 ### Confirmation
@@ -96,7 +99,8 @@ Tests (`tests/`, mocked blinkpy):
 - A rejected refresh raises `ConfigEntryAuthFailed`; a connection error or 5xx raises
   `ConfigEntryNotReady`; neither calls the sign-in.
 - Setup succeeds with no core `blink` entry; devices use `(blink_live, serial)`, no `via_device`.
-- The manifest's blinkpy pin equals the requirement in the installed HA's `blink` manifest.
+- The manifest's blinkpy minimum equals the `==` requirement in the installed HA's `blink`
+  manifest.
 
 Real account, with core Blink logged in on the same account throughout:
 

@@ -53,7 +53,7 @@ async def test_setup_refreshes_and_stores_tokens(
     assert config_entry.data["refresh_token"] == NEW_REFRESH_TOKEN
     assert config_entry.data["hardware_id"] == HARDWARE_ID
     assert set(config_entry.data) <= set(ENTRY_DATA_KEYS)
-    blink_setup["start"].assert_not_called()
+    blink_setup["startup"].assert_not_called()
     blink_setup["sign_in"].assert_not_called()
 
 
@@ -87,7 +87,7 @@ async def test_rejected_token_starts_reauth(
     assert config_entry.state is ConfigEntryState.SETUP_ERROR
     assert len(_reauth_flows(hass, config_entry)) == 1
     assert aioclient_mock.call_count == 1
-    blink_setup["start"].assert_not_called()
+    blink_setup["startup"].assert_not_called()
     blink_setup["sign_in"].assert_not_called()
 
 
@@ -246,13 +246,13 @@ async def test_unload(
     assert config_entry.state is ConfigEntryState.NOT_LOADED
 
 
-def test_manifest_pins_core_blinkpy() -> None:
-    """The blinkpy pin equals core Blink's, and core Blink is no dependency."""
+def test_manifest_requires_core_blinkpy() -> None:
+    """The blinkpy minimum is core Blink's pin, and core Blink is no dependency."""
     ours = json.loads(MANIFEST.read_text(encoding="utf-8"))
     core = json.loads(
         (Path(core_blink.__file__).parent / "manifest.json").read_text(encoding="utf-8")
     )
-    blinkpy = [req for req in core["requirements"] if req.startswith("blinkpy")]
-    assert ours["requirements"] == blinkpy
+    blinkpy = [req for req in core["requirements"] if req.startswith("blinkpy==")]
+    assert ours["requirements"] == [req.replace("==", ">=") for req in blinkpy]
     assert "blink" not in ours["dependencies"]
     assert ours["version"] == "0.2.0"

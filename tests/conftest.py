@@ -3,6 +3,7 @@
 from collections.abc import Generator
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from blinkpy.auth import Auth
 from blinkpy.blinkpy import Blink
 from blinkpy.helpers.constants import OAUTH_TOKEN_URL
 import pytest
@@ -108,13 +109,16 @@ def token_endpoint(aioclient_mock: AiohttpClientMocker) -> AiohttpClientMocker:
 
 @pytest.fixture
 def blink_setup() -> Generator[dict[str, MagicMock]]:
-    """blinkpy's setup after login, and its sign-in, mocked out."""
+    """blinkpy's setup after login, its sign-in and the relay listener, mocked out."""
 
     async def setup_post_verify(self: Blink) -> bool:
         self.cameras = make_cameras()
         self.available = True
         return True
 
+    # The relay's loopback listener; the relay itself is tested in test_camera.
+    relay = MagicMock(sockets=[MagicMock()])
+    relay.sockets[0].getsockname.return_value = ("127.0.0.1", 40000)
     with (
         patch.object(Blink, "setup_urls") as setup_urls,
         patch.object(Blink, "get_homescreen", AsyncMock()) as homescreen,
@@ -122,16 +126,20 @@ def blink_setup() -> Generator[dict[str, MagicMock]]:
             Blink, "setup_post_verify", autospec=True, side_effect=setup_post_verify
         ) as post_verify,
         patch.object(Blink, "refresh", AsyncMock(return_value=True)) as refresh,
-        patch.object(Blink, "start", AsyncMock()) as start,
+        patch.object(Auth, "startup", AsyncMock()) as startup,
         patch(
             "blinkpy.auth.Auth._oauth_login_flow", AsyncMock(return_value=False)
         ) as sign_in,
+        patch(
+            "custom_components.blink_live.camera.asyncio.start_server",
+            AsyncMock(return_value=relay),
+        ),
     ):
         yield {
             "setup_urls": setup_urls,
             "homescreen": homescreen,
             "post_verify": post_verify,
             "refresh": refresh,
-            "start": start,
+            "startup": startup,
             "sign_in": sign_in,
         }
