@@ -1,0 +1,131 @@
+name: Bug report
+description: Something behaves differently from an acceptance criterion.
+title: "S<n>: <what the user observes>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Title format is `S<n>: <what the user observes>` — the symptom, not a
+        guess at the cause. Example:
+        `S2: transfer between TRY accounts rounds 0.005 down instead of up`.
+
+        Agents filing from a session should use the full template in the
+        `test-plan` skill with `gh issue create --body-file` instead of this
+        form.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: |
+        S1 — data loss or corruption, a wrong monetary amount persisted, an auth
+        bypass, or the product is unusable with no workaround. Blocks release.
+        S2 — a primary PRD flow fails or gives a wrong result; a workaround
+        exists but is not acceptable to a user. Blocks release.
+        S3 — a secondary flow is broken, or a primary flow is degraded with an
+        acceptable workaround. Does not block an internal release.
+        S4 — cosmetic, copy, or minor UX with no functional impact.
+
+        Money and authz defects start at S1/S2 by default (constitution §5).
+      options:
+        - "S1 — data loss, wrong money, auth bypass, or unusable"
+        - "S2 — a primary flow is wrong; workaround unacceptable"
+        - "S3 — secondary flow broken, or acceptable workaround"
+        - "S4 — cosmetic or copy"
+    validations:
+      required: true
+
+  - type: input
+    id: severity-justification
+    attributes:
+      label: Why that severity
+      placeholder: One sentence against the definitions above.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: [backend, web, android, ios, api, infra]
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Anything that changes the result. Locale and currency matter.
+      value: |
+        | Field | Value |
+        |---|---|
+        | Build / commit | `<sha>` or tag `v<x.y.z>` |
+        | OS / device | e.g. `derinbay-mi6` (API 35) or AVD `derinbay-avd`, API <level>, headless |
+        | Browser | e.g. Chromium <version> via Playwright |
+        | Backend / DB | e.g. PostgreSQL <version> via `docker compose up` |
+        | Locale / timezone | e.g. `tr-TR`, `Europe/Istanbul` |
+        | Currency | ISO 4217 code(s) involved |
+        | Data setup | test plan §5, or the exact seed used |
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: |
+        1.
+        2.
+        3.
+
+        **Reproducibility:** always / intermittent (<n> of <m> runs) / once
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: Quote the acceptance criterion, do not paraphrase it.
+      placeholder: 'PRD docs/prd/<feature>.md AC-1.2: "Given … When … Then …"'
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: Exact values — amounts, currencies, timestamps, status codes.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: |
+        Screenshot (`adb exec-out screencap -p > shot.png`, or a Playwright
+        trace), logs (`adb logcat -d`, or a server `slog` JSON excerpt), and the
+        request/response.
+
+        **Redact first: no tokens, no PII (constitution §9).**
+    validations:
+      required: false
+
+  - type: input
+    id: suspected-area
+    attributes:
+      label: Suspected area
+      placeholder: file / package / module, and why — or "unknown"
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: notes
+    attributes:
+      label: Notes
+      options:
+        - label: Needs a physical device (does not block other work — constitution §8)
+        - label: Regression — the last known good build is named above
+        - label: A flaky test is quarantined here rather than deleted
