@@ -1,0 +1,109 @@
+name: Decision needed (CEO)
+description: A choice that belongs to the CEO under constitution §2.
+title: "decision: <the question in one line>"
+labels: ["decision"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Read this before filing
+
+        **An open decision issue never blocks work.** Constitution §2: the agent
+        writes the question here, proceeds with the recommended default, and
+        notes that it did. The CEO answers through the CEO inbox (the `ceo-action`
+        label and its daily Telegram digest); if the answer
+        differs from the default, the delta is treated as ordinary rework.
+
+        File this only for a choice that is genuinely the CEO's: money,
+        publishing to stores or real users, the product goal or scope boundary,
+        the first tech-stack choice, or a change to the constitution,
+        `settings.json` deny rules or an agent definition. Everything else is
+        already delegated — decide it yourself and, if it is significant, write
+        an ADR.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Which CEO decision right does this fall under?
+      options:
+        - "Spends money (domain, server, store fee, paid API, macOS runner, GHAS)"
+        - "Publishing to a store or exposing to real users"
+        - "Product goal or scope boundary"
+        - "Tech stack — first choice for a project"
+        - "Change to the constitution, settings.json deny rules, or an agent"
+        - "Other (explain below — it may not actually be a CEO decision)"
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: The question
+      description: What must be decided, and what forces the decision now.
+    validations:
+      required: true
+
+  - type: textarea
+    id: options
+    attributes:
+      label: Options
+      description: Each with its cost, what it buys, and what it forecloses.
+      value: |
+        | # | Option | Cost | Buys us | Gives up |
+        |---|---|---|---|---|
+        | 1 |  | 0 |  |  |
+        | 2 |  |  |  |  |
+        | 3 | Do nothing |  |  |  |
+    validations:
+      required: true
+
+  - type: input
+    id: recommended
+    attributes:
+      label: Recommended default
+      description: |
+        The architect's recommendation, and the one already in effect. Anything
+        that costs money must have a zero-cost default.
+      placeholder: "Option 1 — because …"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: proceeded
+    attributes:
+      label: Has work proceeded with that default?
+      options:
+        - "Yes — proceeded with default (constitution §2)"
+        - "No — not started yet, nothing is blocked"
+        - "No — genuinely blocked, explain below why no default was safe"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reversal-cost
+    attributes:
+      label: Cost of reversal
+      description: |
+        If the CEO chooses differently, how much rework is it? This is the
+        number that decides whether the answer is urgent.
+      placeholder: "e.g. ~2 hours: one ADR and the client regeneration."
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Closing this issue
+
+        Close it with a comment whose **first line is exactly** one of these —
+        the `retro` skill greps for them, so a reworded variant is invisible to
+        the metrics:
+
+        ```text
+        resolution: default-kept
+        resolution: changed
+        ```
+
+        `default-kept` — the CEO confirmed the default already in effect, no
+        rework. `changed` — the CEO chose differently and the delta was
+        reworked. Reasoning goes on the following lines, never the first.

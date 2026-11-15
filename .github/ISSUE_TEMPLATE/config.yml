@@ -1,0 +1,16 @@
+# Blank issues stay enabled: agents file most issues with
+# `gh issue create --body-file` from a skill template, which does not go through
+# these forms. The forms exist for the CEO filing by hand in the web UI.
+blank_issues_enabled: true
+contact_links:
+  - name: Feature or scope request
+    url: https://github.com/Derinbay-Labs/company/blob/master/AGENTS.md
+    about: >-
+      Scope and priority belong to the product-manager agent, driven by a PRD —
+      not to an ad-hoc issue. Give the CEO the goal and let the PRD produce the
+      backlog (constitution §2, §6).
+  - name: Something is insecure
+    url: https://github.com/Derinbay-Labs/company/blob/master/AGENTS.md
+    about: >-
+      Do not describe a live vulnerability in a public issue. Raise it directly
+      with the CEO; the security-engineer agent triages from there.

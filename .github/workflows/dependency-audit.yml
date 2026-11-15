@@ -1,0 +1,168 @@
+name: Daily dependency audit (master)
+
+# Runs once daily against the default `master` branch. This is an inventory
+# check for advisories published after a dependency landed; it is deliberately
+# not a PR or push gate.
+#
+# Public repo: GitHub-hosted runners and no company-private actions (a public repo cannot call them). Original header: runs only on the company's self-hosted runners — Windows first, then macOS
+# (company#127, CEO decision 2026-09-08). static `runs-on` capability labels choose the runner (#351); every
+# `run:` is bash because the Windows default shell is PowerShell. Every scanner here
+# is already a `go install`ed or npm-provided binary, so nothing depends on
+# the runner's OS; the per-runner GOBIN step puts the installed binaries
+# on PATH regardless of how the box's PATH is set up (company#199).
+
+on:
+  schedule:
+    # 04:17 UTC is off the top of the hour/day, where GitHub delays cron jobs
+    # most often. Scheduled workflows run from the default branch (`master`).
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-dependency-audit-master
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # osv-scanner is the INVENTORY pass: what advisories exist against the
+  # versions we actually ship, reachable or not. It covers every ecosystem in
+  # one go — Go, npm, Gradle and Swift lockfiles alike — which is why it sits
+  # alongside the per-ecosystem tools rather than instead of them.
+  #
+  # Checked for the same clean/dirty/unknown conflation as personal-finance#32
+  # found in the two jobs above, because osv-scanner's own binary also exits
+  # non-zero for both "a vulnerability was found" and "the scan itself
+  # failed" (e.g. it could not reach the OSV.dev API).
+  #
+  # An earlier version of this job called google/osv-scanner-action's
+  # reusable workflow directly and a comment here claimed that workflow
+  # already told the two cases apart via a "Check that the scan completed"
+  # step. That step does not exist, and the claim was wrong — corrected
+  # 2026-09-05 after a security review caught it (issue personal-finance#32
+  # follow-up). What the reusable workflow @v2.5.1 actually does, read from
+  # its own source (google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml)
+  # and google/osv-scanner's cmd/osv-reporter/main.go at the same tag:
+  #   - "Run scanner" runs with continue-on-error: true, so a scan failure
+  #     (e.g. an OSV.dev outage) does not stop the job.
+  #   - "Run osv-scanner-reporter" runs next regardless, reading
+  #     --new=results.json. There is no intermediate check step.
+  #   - osv-reporter's LoadVulnResults, on a missing or unreadable
+  #     results.json, logs only a warning ("likely because previous step
+  #     failed"), substitutes an empty result set, and returns exit 0 — a
+  #     failed scan is reported identically to a clean one.
+  #   - The one thing that *would* surface the distinction — the "Export
+  #     results" step that writes a results file gated on the scan having
+  #     produced one — only runs `if: inputs.export-results`, which defaults
+  #     to false and this call never set.
+  # Demonstrated empirically 2026-09-05: running the actual pinned reporter
+  # binary (`docker run --entrypoint /root/osv-reporter
+  # ghcr.io/google/osv-scanner-action:v2.5.1 --output=results.sarif
+  # --new=results.json --gh-annotations=false --fail-on-vuln=true`) against a
+  # directory with no results.json — i.e. exactly what a failed "Run
+  # scanner" step leaves behind — logged "failed to open new results at
+  # results.json: ... likely because previous step failed", printed
+  # "No issues found", and exited 0. An OSV.dev outage during this job was
+  # therefore indistinguishable from a clean dependency tree —
+  # personal-finance#32's exact defect, in the one job the original PR marked
+  # as needing no change.
+  #
+  # Fixed the same way as the go and npm jobs above: install the
+  # osv-scanner binary directly (pinned, `go install`, never `go run` — same
+  # exit-code-collapse reason as the govulncheck job) and decide pass/fail
+  # from its real exit code via osv-scanner-gate.sh, which already handles
+  # osv-scanner's four documented exit states (0 clean, 1 dirty, 127 scan
+  # failed, 128 no package sources — see the script's own header) and is
+  # already unit-tested in gate-self-test above. This also means the job no
+  # longer calls the reusable workflow at all, so the security-events:write
+  # permission it required (personal-finance#1, company#94) is no longer
+  # needed here.
+  #
+  # This drops SARIF upload to Security > Code Scanning, which upload-sarif
+  # was already set to false for (GitHub Advanced Security on a private repo
+  # costs money — a CEO decision, constitution §2) — so nothing currently in
+  # use is lost. If the CEO later approves GHAS, code scanning for this repo
+  # needs its own design, not a revert of this fix.
+  #
+  # ---------------------------------------------------------------------------
+  # DO NOT REMOVE --no-call-analysis=go. It is not noise-reduction; it is what
+  # makes this job an inventory check at all.
+  #
+  # osv-scanner runs Go call-graph analysis BY DEFAULT. Left unflagged it applies
+  # the same reachability filter as the govulncheck job above, so the two jobs
+  # become near-duplicates and are blind in the same way. A clean run is then NOT
+  # evidence that there are no advisories.
+  #
+  # This is not hypothetical. templates/backend once shipped kin-openapi v0.142.0
+  # carrying GO-2026-6095 (GHSA-r277-6w6q-xmqw), an AUTHENTICATION BYPASS, and
+  # neither default-mode command reported it. Measured on this repo 2026-09-01:
+  #   osv-scanner scan source -r templates/backend/                  -> 0 vulns, exit 0
+  #   osv-scanner scan source --no-call-analysis=go -r ...            -> 1 vuln,  exit 1
+  # Flag spelling verified against `osv-scanner scan source --help` (v2.5.1).
+  #
+  # Advisories with no available fix are suppressed explicitly and with a written
+  # reason in osv-scanner.toml at the repo root — never by dropping this flag.
+  #
+  # --config is REQUIRED and is not redundant: osv-scanner looks for
+  # osv-scanner.toml next to each scanned manifest (i.e. backend/), NOT at the
+  # scan root, so a root-level config is silently ignored without it. Verified
+  # 2026-09-01 — without --config the suppression did not apply and the job
+  # exited 1.
+  # ---------------------------------------------------------------------------
+  #
+  osv:
+    name: osv-scanner
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Nothing to scan until a manifest lands; osv-scanner would exit 128.
+      - name: Is there a manifest?
+        id: probe
+        run: |
+          if git ls-files | grep -qE '(^|/)(package-lock\.json|requirements[^/]*\.txt|go\.mod|poetry\.lock|uv\.lock)$'; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.probe.outputs.present == 'true'
+        with:
+          go-version: stable
+          cache: false
+
+      # All four kobe runners run as one user, so by default they share
+      # one GOCACHE and one GOPATH/bin, and concurrent Go builds fail with
+      # `could not import ... (open ...\go-build\...)` (company#199). Each
+      # runner's tool cache is its own and persists, so the cache stays warm.
+      - name: Per-runner Go cache
+        if: steps.probe.outputs.present == 'true'
+        run: |
+          echo "GOCACHE=$RUNNER_TOOL_CACHE/go-build" >> "$GITHUB_ENV"
+          echo "GOBIN=$RUNNER_TOOL_CACHE/go-bin" >> "$GITHUB_ENV"
+          echo "$RUNNER_TOOL_CACHE/go-bin" >> "$GITHUB_PATH"
+
+      # Installed as a binary, never via `go run` — see the govulncheck step
+      # above for why: `go run` normalizes every non-zero exit to 1 and would
+      # collapse osv-scanner-gate.sh's clean/dirty/unknown/no-packages
+      # distinction back into one signal.
+      - name: Install osv-scanner
+        if: steps.probe.outputs.present == 'true'
+        run: |
+          go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.5.1
+
+      # See osv-scanner-gate.sh for the exit-code contract (0/1/2/3) it
+      # normalizes osv-scanner's own 0/1/127/128 exit codes into, and
+      # gate-self-test above for the unit tests proving each case.
+      - name: osv-scanner
+        if: steps.probe.outputs.present == 'true'
+        env:
+          OSV_SCANNER_CMD: osv-scanner scan source --no-call-analysis=go -r .
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/osv-scanner-gate.sh"
