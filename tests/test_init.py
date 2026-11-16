@@ -255,4 +255,4 @@ def test_manifest_requires_core_blinkpy() -> None:
     blinkpy = [req for req in core["requirements"] if req.startswith("blinkpy==")]
     assert ours["requirements"] == [req.replace("==", ">=") for req in blinkpy]
     assert "blink" not in ours["dependencies"]
-    assert ours["version"] == "0.2.0"
+    assert ours["version"] == "0.2.1"

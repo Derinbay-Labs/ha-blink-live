@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-17
+
 ### Changed
 
 - The README install section leads with the HACS default search; the custom
@@ -46,6 +48,7 @@ All notable changes to this project are documented here. The format follows
 - An `online` attribute that reports whether Blink sees the camera as online.
 - Camera selection in the setup dialog and in the integration's options.
 
-[Unreleased]: https://github.com/Derinbay-Labs/ha-blink-live/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Derinbay-Labs/ha-blink-live/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/Derinbay-Labs/ha-blink-live/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/Derinbay-Labs/ha-blink-live/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Derinbay-Labs/ha-blink-live/releases/tag/v0.1.0
