@@ -1,3 +1,7 @@
 PyTurboJPEG==2.6.1
 blinkpy==0.25.9
 pytest-homeassistant-custom-component==0.13.375
+# Minimum pins for transitives that osv-scanner resolves to vulnerable versions (company#682).
+anyio>=4.14.2
+idna>=3.15
+certifi>=2026.10.18

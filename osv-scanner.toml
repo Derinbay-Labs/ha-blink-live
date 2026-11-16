@@ -1,0 +1,12 @@
+# Dated security exception (company#682, CEO approval 2026-11-16).
+# Pillow 12.3.0 is hard-pinned by homeassistant==2026.10.4, which is hard-pinned by
+# pytest-homeassistant-custom-component==0.13.375 (the latest release on PyPI).
+# Test-only dependency: it never ships in the integration.
+# Removal condition: Renovate bumps the plugin to a build whose HA pins Pillow >= 13.0.0.
+[[PackageOverrides]]
+name = "pillow"
+ecosystem = "PyPI"
+version = "12.3.0"
+vulnerability.ignore = true
+effectiveUntil = 2026-12-31T00:00:00Z
+reason = "homeassistant==2026.10.4 (pinned by pytest-homeassistant-custom-component==0.13.375, latest) hard-pins Pillow==12.3.0; test-only; company#682"
