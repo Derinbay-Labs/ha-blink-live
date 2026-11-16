@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The README install section leads with the HACS default search; the custom
+  repository steps are the fallback.
+
 ## [0.2.0] - 2026-11-11
 
 ### Changed

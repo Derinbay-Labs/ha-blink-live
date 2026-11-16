@@ -25,10 +25,14 @@ can run it next to the core integration or without it.
 
 ### HACS
 
-[![Open your Home Assistant instance and add this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Derinbay-Labs&repository=ha-blink-live&category=integration)
+Blink Live View is in the HACS default repositories:
 
-The button adds the repository to HACS (to the Marketplace on Home Assistant 2026.11
-and later). To do it by hand:
+1. Open HACS (the Marketplace on Home Assistant 2026.11 and later).
+2. Search for **Blink Live View**, download it, and restart Home Assistant.
+
+[![Open Blink Live View in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Derinbay-Labs&repository=ha-blink-live&category=integration)
+
+If the search does not find it, add it as a custom repository instead:
 
 1. Open HACS, then the menu in the top right corner, then **Custom repositories**.
 2. Add `https://github.com/Derinbay-Labs/ha-blink-live` with the type **Integration**.
