@@ -5,5 +5,14 @@
   },
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Minor, patch, pin and digest updates automerge once CI is green, as in the company template (company#531).",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash"
+    }
   ]
 }
