@@ -6,6 +6,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A live view no longer ends early when Blink's connection delivers a video frame in
+  parts. blinkpy 0.25.9 read such a frame as the end of the stream, logged
+  "Insufficient data for payload" and stopped the live view (#28).
+
 ## [0.2.1] - 2026-11-17
 
 ### Changed

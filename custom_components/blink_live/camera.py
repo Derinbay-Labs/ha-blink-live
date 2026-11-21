@@ -11,7 +11,6 @@ import asyncio
 import logging
 
 from blinkpy.camera import BlinkCamera
-from blinkpy.livestream import BlinkLiveStream
 
 from homeassistant.components.camera import Camera, CameraEntityFeature
 from homeassistant.core import HomeAssistant
@@ -21,6 +20,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import CONF_CAMERAS, DOMAIN
 from .coordinator import BlinkLiveConfigEntry, BlinkLiveCoordinator
+from .livestream import LiveStream, init_livestream
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -66,7 +66,7 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
         )
         self._server: asyncio.Server | None = None
         self._url: str | None = None
-        self._live: BlinkLiveStream | None = None
+        self._live: LiveStream | None = None
         self._feed: asyncio.Task | None = None
         self._viewer: asyncio.StreamWriter | None = None
         self._lock = asyncio.Lock()
@@ -147,7 +147,7 @@ class BlinkLiveCamera(CoordinatorEntity[BlinkLiveCoordinator], Camera):
             if not (live and live.is_serving):
                 if (camera := self._blink_camera()) is None:
                     raise RuntimeError("camera not found on the Blink account")
-                live = await camera.init_livestream()
+                live = await init_livestream(camera)
                 await live.start()
                 self._live = live
                 self._feed = None
