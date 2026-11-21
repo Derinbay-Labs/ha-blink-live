@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The manifest lists the integration under Security & safety → Cameras, which clears
+  the HACS "no categories" warning (#30).
+
 ### Fixed
 
 - A live view no longer ends early when Blink's connection delivers a video frame in
