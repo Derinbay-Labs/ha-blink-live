@@ -40,6 +40,15 @@ async def listening(camera) -> AsyncGenerator[BlinkLiveCamera]:
     await camera.async_will_remove_from_hass()
 
 
+@pytest.fixture(autouse=True)
+def init_live() -> Generator[AsyncMock]:
+    """The Blink live-view request; a test sets what it returns."""
+    with patch(
+        "custom_components.blink_live.camera.init_livestream", new_callable=AsyncMock
+    ) as init_live:
+        yield init_live
+
+
 def _blink_camera(coordinator):
     return coordinator.api.cameras["Garden"]
 
@@ -79,19 +88,17 @@ async def test_stream_source_only_while_not_offline(
 
 @pytest.mark.usefixtures("socket_enabled")
 async def test_offline_viewer_is_closed_without_a_live_view(
-    listening, coordinator, caplog
+    listening, coordinator, init_live, caplog
 ) -> None:
     """An existing stream reconnecting to an offline camera is dropped quietly."""
     _blink_camera(coordinator).status = "offline"
     _blink_camera(coordinator).online = False
-    _blink_camera(coordinator).init_livestream = AsyncMock(
-        side_effect=KeyError("server")
-    )
+    init_live.side_effect = KeyError("server")
     reader, writer = await _connect(listening)
     async with asyncio.timeout(2):
         assert await reader.read() == b""
     writer.close()
-    _blink_camera(coordinator).init_livestream.assert_not_called()
+    init_live.assert_not_called()
     assert not [r for r in caplog.records if r.levelno >= logging.ERROR]
 
 
@@ -103,11 +110,11 @@ def test_unavailable_when_blink_drops_the_camera(camera, coordinator) -> None:
     assert camera.extra_state_attributes == {"online": None}
 
 
-def test_thumbnail_uses_the_cached_snapshot(camera, coordinator) -> None:
+def test_thumbnail_uses_the_cached_snapshot(camera, coordinator, init_live) -> None:
     """Thumbnails come from Blink's last snapshot and never start a live view."""
     _blink_camera(coordinator).image_from_cache = b"jpeg"
     assert camera.camera_image() == b"jpeg"
-    _blink_camera(coordinator).init_livestream.assert_not_called()
+    init_live.assert_not_called()
 
 
 @pytest.mark.usefixtures("socket_enabled")
@@ -152,7 +159,7 @@ async def test_one_viewer_at_a_time(listening) -> None:
 
 @pytest.mark.usefixtures("socket_enabled")
 async def test_relay_forwards_and_closes_when_viewer_leaves(
-    listening, coordinator
+    listening, init_live
 ) -> None:
     """Bytes come from blinkpy's address only; leaving closes the upstream side."""
     upstream_closed = asyncio.Event()
@@ -168,7 +175,7 @@ async def test_relay_forwards_and_closes_when_viewer_leaves(
     live = MagicMock(is_serving=False, socket=upstream.sockets[0])
     live.start = AsyncMock()
     live.feed = AsyncMock()
-    _blink_camera(coordinator).init_livestream = AsyncMock(return_value=live)
+    init_live.return_value = live
     try:
         reader, writer = await _connect(listening)
         async with asyncio.timeout(2):
