@@ -166,3 +166,73 @@ jobs:
         env:
           OSV_SCANNER_CMD: osv-scanner scan source --no-call-analysis=go -r .
         run: bash "$GITHUB_WORKSPACE/.github/scripts/osv-scanner-gate.sh"
+
+  # CEO decision 2026-11-23: a failed audit opens a GitHub issue itself, so a
+  # finding is never a silent red run (zula was red three times unnoticed).
+  # Runs on schedule and workflow_dispatch from the default branch, never on a
+  # PR. One open issue at a time: a repeat failure comments on it. Adds no
+  # gate. `!cancelled()` is required so this job runs after a failed `needs:`.
+  alert-on-failure:
+    name: Open or update the alert issue
+    needs: [osv]
+    if: >-
+      !cancelled() &&
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+      contains(needs.*.result, 'failure')
+    runs-on: [self-hosted, light]
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      issues: write
+    steps:
+      - name: Open or update the tracking issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: "Dependency audit failed"
+        run: |
+          set -euo pipefail
+          # Idempotent: an existing label is left alone.
+          gh label create bug --repo "$REPO" >/dev/null 2>&1 || true
+          gh label create security --repo "$REPO" >/dev/null 2>&1 || true
+
+          # Findings summary: the failing jobs plus their error annotations and
+          # advisory lines (osv-scanner table, npm audit severity line), read
+          # from the finished jobs' logs. Public advisory data only; the
+          # runner already masks secrets in logs. Best effort, never fatal.
+          ESC="$(printf '\033')"
+          SUMMARY=""
+          jobs="$(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --paginate \
+            --jq '.jobs[] | select(.conclusion == "failure") | "\(.id)\t\(.name)"' 2>/dev/null || true)"
+          while IFS="$(printf '\t')" read -r jid jname; do
+            [ -n "${jid:-}" ] || continue
+            SUMMARY="$SUMMARY"$'\n'"Failed job: $jname"$'\n'
+            lines="$(gh api "repos/$REPO/actions/jobs/$jid/logs" 2>/dev/null \
+              | sed "s/${ESC}\[[0-9;]*m//g" \
+              | sed 's/^[0-9T:.Z-]* //' \
+              | grep -E '##\[error\]|osv\.dev|GHSA-|GO-[0-9]{4}-|CVE-[0-9]|severity|vulnerabilit|critical|high' \
+              | head -n 30 || true)"
+            if [ -n "$lines" ]; then
+              SUMMARY="$SUMMARY"$'\n```\n'"$lines"$'\n```\n'
+            fi
+          done <<EOJ
+          $jobs
+          EOJ
+
+          existing="$(gh issue list --repo "$REPO" --state open \
+            --search "in:title \"$TITLE\"" --json number,title \
+            --jq '[.[] | select(.title == env.TITLE)] | .[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$REPO" \
+              --body "Dependency audit failed again: $RUN_URL"$'\n'"$SUMMARY"
+          else
+            BODY=$'TL;DR: the dependency audit failed on the default branch.\n'
+            BODY+=$'\nFailing run: '"$RUN_URL"$'\n'"$SUMMARY"
+            BODY+=$'\nRead the log for the advisory ID(s), then bump the dependency in a normal PR.\n'
+            BODY+=$'A second failure comments here; close this issue once the audit is green.'
+            gh issue create --repo "$REPO" --title "$TITLE" \
+              --label bug --label security --body "$BODY"
+          fi
